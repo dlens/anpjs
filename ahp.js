@@ -17,7 +17,15 @@ function mId(size) {
     }
     return rval
 }
-
+/*Checks if all entries of a vector are 0*/
+function allZero(vec) {
+  for(let i=0; i < vec.length; i++) {
+    if (vec[i] != 0) {
+      return false;
+    }
+  }
+  return true;
+}
 function mInit(rows, cols, init_val=0) {
     let rval = []
     for(let row=0; row < rows; row++) {
@@ -357,6 +365,7 @@ class AHPTreeNode extends Prioritizer {
         this.name = name
         this.description = description
         this.childPrioritizer = new Pairwise(0)
+        this.sensitivity_weights = []
         //this.altPrioritizer = null
         this.parentNode = parentNode
     }
@@ -372,6 +381,7 @@ class AHPTreeNode extends Prioritizer {
         }
         this.children.push(childNode)
         this.childPrioritizer.addAlt(null)
+        this.sensitivity_weights.push(0)
         return childNode
     }
 
@@ -479,6 +489,69 @@ class AHPTreeNode extends Prioritizer {
         return this.direct_data
     }
 
+    getSensitivityWeights() {
+      if ((this.sensitivity_weights == null) ||
+        (this.children.length != this.sensitivity_weights.length)
+        || (allZero(this.sensitivity_weights))) {
+        this.sensitivity_weights = this.childPrioritizer.priority();
+      }
+      return this.sensitivity_weights;
+    }
+
+    setSensitivityWeight(alt, newValue) {
+      this.getSensitivityWeights();
+      let epsilon = 0.0001
+      if (newValue < 0) {
+        newValue = 0
+      } else if (newValue > (1-epsilon)) {
+        newValue = 1-epsilon
+      }
+      let origVal = this.sensitivity_weights[alt]
+      this.sensitivity_weights[alt] = newValue
+      let oldSumOthers = 1-origVal
+      let newSumOthers = 1-newValue
+      if (oldSumOthers == 0) {
+        //We only had a value at this alt, make the value 1 and move on
+        this.sensitivity_weights[alt] = 0
+        for(let i=0; i < this.sensitivity_weights.length; i++) {
+          if (i != alt) {
+            this.sensitivity_weights[i] = 0
+          }
+        }
+      } else {
+        //We can rescale
+        for(let i=0; i < this.sensitivity_weights.length; i++) {
+          if (i != alt) {
+            this.sensitivity_weights[i] *= (newSumOthers / oldSumOthers)
+          }
+        }
+      }
+    }
+
+    sensitivity(startAlt=0, endAlt=-1) {
+      let nalts = this.nalts();
+      if (endAlt < 0) {
+        endAlt = nalts
+      }
+      /**Handle bottom level first*/
+      if (this.children.length == 0) {
+          //No children, simply return altScores upwards
+          return this.direct_data.slice(startAlt, endAlt)
+      }
+      //Now let's synthesize each child
+      let childScores = this.getSensitivityWeights()
+      let rval = Array(endAlt-startAlt)
+      for(let i=0; i < rval.length; i++) {
+        rval[i] = 0
+      }
+      for(let i=0; i < this.children.length; i++) {
+          let vals = this.children[i].sensitivity(startAlt, endAlt)
+          for(let alt=0; alt < nalts; alt++) {
+              rval[alt] += childScores[i] * vals[alt]
+          }
+      }
+      return rval
+    }
     monteCarloAdjust(fromNode, pw_base=2, direct_base=0.1) {
       let nalts = this.nalts();
       let nkids = this.nchildren();
