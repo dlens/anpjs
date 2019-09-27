@@ -670,6 +670,18 @@ class AHPTreeNode extends Prioritizer {
                 rval.direct_data = obj.alt_scores
             }
         }
+        // Check for sensitivity weights
+        if (obj.sensitivity_weights != null) {
+          if (obj.sensitivity_weights.length != obj.children.length) {
+            throw "Sensitivity scores wrong length"
+          }
+          rval.sensitivity_weights = obj.sensitivity_weights
+          vNormalize(rval.sensitivity_weights)
+        } else {
+          rval.sensitivity_weights = null
+          rval.getSensitivityWeights()
+          //console.log(rval.sensitivity_weights)
+        }
         return rval
     }
 }
