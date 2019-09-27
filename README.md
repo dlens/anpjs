@@ -11,7 +11,7 @@ This is a browser based AHP javascript library, for general AHP usage.
 <head>
   ...
   <!--Load latest version from github-->
-  <script src="https://cdn.jsdelivr.net/gh/wjladams/anpjs/ahp.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/dlens/anpjs/ahp.js"></script>
   ...
 </head>
 <body>
