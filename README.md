@@ -39,3 +39,6 @@ This is a browser based AHP javascript library, for general AHP usage.
 </body>
 
 ```
+
+## More examples
+See [test/testBrowserAHP.html] for more examples of usage.
