@@ -41,4 +41,4 @@ This is a browser based AHP javascript library, for general AHP usage.
 ```
 
 ## More examples
-See [test/testBrowserAHP.html] for more examples of usage.
+See [test/testBrowserAHP.html](test/testBrowserAHP.html) for more examples of usage.
