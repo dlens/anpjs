@@ -369,6 +369,14 @@ class AHPTreeNode extends Prioritizer {
         //this.altPrioritizer = null
         this.parentNode = parentNode
     }
+    getChildWithName(name) {
+      for(let i=0; i < this.children.length; i++) {
+        if (this.children[i].name == name) {
+          return this.children[i]
+        }
+      }
+      return null
+    }
 
     addChildName(name, description=null) {
       let childNode = new AHPTreeNode(this, this.alts.length, name, description)
