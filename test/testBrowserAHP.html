@@ -252,25 +252,25 @@
       c2.setAltScore(1, 0.4)
       c2.setAltScore(2, 0.8)
 
-      node.pairwise(0, 1, 2)
+      //node.pairwise(0, 1, 2)
 
       let scores = node.sensitivity()
-      expect(scores[0]).toBeCloseTo((2*0.7+1*0.1)/3)
-      expect(scores[1]).toBeCloseTo((2*0.5+1*0.4)/3)
-      expect(scores[2]).toBeCloseTo((2*1.0 + 1*0.8)/3)
-
-      scores = node.getSensitivityWeights()
-      expect(scores[0]).toBeCloseTo(2/3)
-      expect(scores[1]).toBeCloseTo(1/3)
-
-      node.setSensitivityWeight(1, 0.5)
-      scores = node.getSensitivityWeights()
-      expect(scores[0]).toBeCloseTo(0.5)
-      expect(scores[1]).toBeCloseTo(0.5)
-      scores = node.sensitivity()
       expect(scores[0]).toBeCloseTo((1*0.7+1*0.1)/2)
       expect(scores[1]).toBeCloseTo((1*0.5+1*0.4)/2)
       expect(scores[2]).toBeCloseTo((1*1.0 + 1*0.8)/2)
+
+      scores = node.getSensitivityWeights()
+      expect(scores[0]).toBeCloseTo(1/2)
+      expect(scores[1]).toBeCloseTo(1/2)
+
+      node.setSensitivityWeight(1, 0.95)
+      scores = node.getSensitivityWeights()
+      expect(scores[0]).toBeCloseTo(0.05)
+      expect(scores[1]).toBeCloseTo(0.95)
+      scores = node.sensitivity()
+      expect(scores[0]).toBeCloseTo((0.05*0.7+0.95*0.1)/1)
+      expect(scores[1]).toBeCloseTo((0.05*0.5+0.95*0.4)/1)
+      expect(scores[2]).toBeCloseTo((0.05*1.0 + 0.95*0.8)/1)
     })
 
     test("sensitivity json", () => {
