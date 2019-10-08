@@ -366,9 +366,14 @@ class AHPTreeNode extends Prioritizer {
         this.description = description
         this.childPrioritizer = new Pairwise(0)
         this.sensitivity_weights = []
+        this.sensitivity_scores = []
         //this.altPrioritizer = null
         this.parentNode = parentNode
     }
+    getChildWithIndex(index) {
+      return this.children[index]
+    }
+
     getChildWithName(name) {
       for(let i=0; i < this.children.length; i++) {
         if (this.children[i].name == name) {
@@ -544,7 +549,8 @@ class AHPTreeNode extends Prioritizer {
       /**Handle bottom level first*/
       if (this.children.length == 0) {
           //No children, simply return altScores upwards
-          return this.direct_data.slice(startAlt, endAlt)
+          this.sensitivity_scores = this.direct_data.slice(startAlt, endAlt)
+          return this.sensitivity_scores
       }
       //Now let's synthesize each child
       let childScores = this.getSensitivityWeights()
@@ -558,6 +564,7 @@ class AHPTreeNode extends Prioritizer {
               rval[alt] += childScores[i] * vals[alt]
           }
       }
+      this.sensitivity_scores = rval
       return rval
     }
     monteCarloAdjust(fromNode, pw_base=2, direct_base=0.1) {

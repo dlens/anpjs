@@ -271,6 +271,24 @@
       expect(scores[0]).toBeCloseTo((0.05*0.7+0.95*0.1)/1)
       expect(scores[1]).toBeCloseTo((0.05*0.5+0.95*0.4)/1)
       expect(scores[2]).toBeCloseTo((0.05*1.0 + 0.95*0.8)/1)
+
+      //Check that the sensitivity_scores variable is being set correctly
+      expect(node.sensitivity_scores[0]).toBeCloseTo((0.05*0.7+0.95*0.1)/1)
+      expect(node.sensitivity_scores[1]).toBeCloseTo((0.05*0.5+0.95*0.4)/1)
+      expect(node.sensitivity_scores[2]).toBeCloseTo((0.05*1.0 + 0.95*0.8)/1)
+
+      //Check that the sensitvity scores for children are working
+      let child = node.getChildWithIndex(0)
+      expect(child.sensitivity_scores[0]).toBeCloseTo(0.7)
+      expect(child.sensitivity_scores[1]).toBeCloseTo(0.5)
+      expect(child.sensitivity_scores[2]).toBeCloseTo(1.0)
+
+      child = node.getChildWithIndex(1)
+      expect(child.sensitivity_scores[0]).toBeCloseTo(0.1)
+      expect(child.sensitivity_scores[1]).toBeCloseTo(0.4)
+      expect(child.sensitivity_scores[2]).toBeCloseTo(0.8)
+
+
     })
 
     test("sensitivity json", () => {
