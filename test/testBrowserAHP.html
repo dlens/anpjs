@@ -288,7 +288,15 @@
       expect(child.sensitivity_scores[1]).toBeCloseTo(0.4)
       expect(child.sensitivity_scores[2]).toBeCloseTo(0.8)
 
+      //Check out full sensivity report'ish thing
+      let sensitivityFull = node.sensitivityFull()
+      expect(sensitivityFull["alt_scores"][0]).toBeCloseTo((0.05*0.7+0.95*0.1)/1)
+      expect(sensitivityFull["alt_scores"][1]).toBeCloseTo((0.05*0.5+0.95*0.4)/1)
+      expect(sensitivityFull["alt_scores"][2]).toBeCloseTo((0.05*1.0 + 0.95*0.8)/1)
 
+      expect(vSum(sensitivityFull["alt_breakdowns"][0])).toBeCloseTo(sensitivityFull["alt_scores"][0])
+      expect(vSum(sensitivityFull["alt_breakdowns"][1])).toBeCloseTo(sensitivityFull["alt_scores"][1])
+      expect(vSum(sensitivityFull["alt_breakdowns"][2])).toBeCloseTo(sensitivityFull["alt_scores"][2])
     })
 
     test("sensitivity json", () => {

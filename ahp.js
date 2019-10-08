@@ -567,6 +567,41 @@ class AHPTreeNode extends Prioritizer {
       this.sensitivity_scores = rval
       return rval
     }
+
+    /**
+    Returns the sensitivity scores, plus the children sensitivity scores
+    that add up to these scores.  For instance, if you have 2 children with
+    3 alts, and example result would look like
+    {
+      "alt_scores": [0.75, 0.5, 0.9],
+    	"alt_breakdowns": [
+    		[0.55, 0.20],
+    		[0.45, 0.05],
+    		[0.3, 0.6]
+    	]
+    }
+    where alt_breakdowns[0] is the the scores for alt[0] relative to the
+    2 children with the scores weighted by criteria scores.  So alt_breakdowns[0]
+    sums to 0.75.
+    */
+    sensitivityFull(startAlt=0, endAlt=-1) {
+      let nalts = this.nalts()
+      let nkids = this.nchildren()
+      let rval = {}
+      rval["alt_scores"] = this.sensitivity(startAlt=startAlt, endAlt=endAlt)
+      let breakdowns = []
+      let childScores = this.getSensitivityWeights()
+      for (let alt=0; alt < nalts; alt++) {
+        let breakdown =[]
+        for (let child=0; child < nkids; child++) {
+          let c = this.getChildWithIndex(child)
+          breakdown.push(childScores[child] * c.sensitivity_scores[alt])
+        }
+        breakdowns.push(breakdown)
+      }
+      rval["alt_breakdowns"] = breakdowns
+      return rval
+    }
     monteCarloAdjust(fromNode, pw_base=2, direct_base=0.1) {
       let nalts = this.nalts();
       let nkids = this.nchildren();
