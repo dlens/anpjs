@@ -259,7 +259,7 @@ function bestHMLIndex(priority) {
 /**********************************************/
 
 class Prioritizer {
-    constructor(size) {
+    constructor(size, altNames=null) {
         this.size = size
         this.alts = []
         this.alt_descriptions = []
@@ -268,6 +268,11 @@ class Prioritizer {
             this.alts[i] = "Alternative "+(i+1)
             this.direct_data[i] = 0
             this.alt_descriptions[i] = "Default description for Alternative "+(i+1)
+        }
+        if (altNames != null) {
+          if (altNames.length == size) {
+            this.alts = altNames
+          }
         }
     }
 
@@ -359,8 +364,8 @@ class Pairwise extends Prioritizer {
 }
 
 class AHPTreeNode extends Prioritizer {
-    constructor(parentNode, size, name=null, description=null) {
-        super(size)
+    constructor(parentNode, size, name=null, description=null, altNames=null) {
+        super(size, altNames)
         this.children = []
         this.name = name
         this.description = description
