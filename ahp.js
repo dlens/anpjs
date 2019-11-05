@@ -541,6 +541,10 @@ class AHPTreeNode extends Prioritizer {
       }
     }
 
+    setSensitivityWeights(newValues) {
+      this.sensitivity_weights = newValues
+    }
+
     sensitivity(startAlt=0, endAlt=-1) {
       let nalts = this.nalts();
       if (endAlt < 0) {
