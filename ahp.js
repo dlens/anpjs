@@ -560,7 +560,7 @@ class AHPTreeNode extends Prioritizer {
         //We only had a value at this alt, make the value 1 and move on
         this.sensitivity_weights[alt] = 0
         for(let i=0; i < this.sensitivity_weights.length; i++) {
-          if (i != alt) {
+          if ((!this.sensitivity_weights_locked[i]) && (i != alt)) {
             this.sensitivity_weights[i] = 0
           }
         }
@@ -576,6 +576,14 @@ class AHPTreeNode extends Prioritizer {
 
     setSensitivityWeights(newValues) {
       this.sensitivity_weights = newValues
+    }
+
+    sensitivityLock(alt) {
+      this.sensitivity_weights_locked[alt] = true
+    }
+
+    sensitivityUnlock(alt) {
+      this.sensitivity_weights_locked[alt] = false
     }
 
     sensitivity(startAlt=0, endAlt=-1) {
