@@ -367,6 +367,7 @@ class AHPTreeNode extends Prioritizer {
     constructor(parentNode, size, name=null, description=null, altNames=null) {
         super(size, altNames)
         this.children = []
+        this.sensitivity_weights_locked = []
         this.name = name
         this.description = description
         this.childPrioritizer = new Pairwise(0)
@@ -400,6 +401,7 @@ class AHPTreeNode extends Prioritizer {
         this.children.push(childNode)
         this.childPrioritizer.addAlt(null)
         this.sensitivity_weights.push(0)
+        this.sensitivity_weights_locked.push(false)
         return childNode
     }
 
@@ -513,21 +515,47 @@ class AHPTreeNode extends Prioritizer {
         || (allZero(this.sensitivity_weights))) {
         this.sensitivity_weights = this.childPrioritizer.priority();
       }
+      //Make sure the sensitivity weights are normalized
+      vNormalize(this.sensitivity_weights)
       return this.sensitivity_weights;
+    }
+
+    getLockedSensitivityWeightSum() {
+      this.getSensitivityWeights();
+      let unlockedSum = 0
+      let lockedSum = 0
+      for(let i=0; i < this.sensitivity_weights.length; i++) {
+        if ((! this.sensitivity_weights_locked[i]) || (i == alt)) {
+          unlockedSum += this.sensitivity_weights[i];
+        } else {
+          lockedSum += this.sensitivity_weights[i];
+        }
+      }
+      return lockedSum
     }
 
     setSensitivityWeight(alt, newValue) {
       this.getSensitivityWeights();
       let epsilon = 0.0001
+      // Let's get the sum of the sensitivity locked criteria
+      let unlockedSum = 0
+      let lockedSum = 0
+      for(let i=0; i < this.sensitivity_weights.length; i++) {
+        if ((! this.sensitivity_weights_locked[i]) || (i == alt)) {
+          unlockedSum += this.sensitivity_weights[i];
+        } else {
+          lockedSum += this.sensitivity_weights[i];
+        }
+      }
       if (newValue < 0) {
         newValue = 0
-      } else if (newValue > (1-epsilon)) {
-        newValue = 1-epsilon
+      } else if (newValue > (unlockedSum-epsilon)) {
+        newValue = unlockedSum-epsilon
       }
       let origVal = this.sensitivity_weights[alt]
       this.sensitivity_weights[alt] = newValue
-      let oldSumOthers = 1-origVal
-      let newSumOthers = 1-newValue
+      let oldSumOthers = unlockedSum-origVal
+      let newSumOthers = unlockedSum-newValue
       if (oldSumOthers == 0) {
         //We only had a value at this alt, make the value 1 and move on
         this.sensitivity_weights[alt] = 0
@@ -539,7 +567,7 @@ class AHPTreeNode extends Prioritizer {
       } else {
         //We can rescale
         for(let i=0; i < this.sensitivity_weights.length; i++) {
-          if (i != alt) {
+          if ((!this.sensitivity_weights_locked[i]) && (i != alt)) {
             this.sensitivity_weights[i] *= (newSumOthers / oldSumOthers)
           }
         }
