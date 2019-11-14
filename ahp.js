@@ -586,7 +586,7 @@ class AHPTreeNode extends Prioritizer {
       this.sensitivity_weights_locked[alt] = false
     }
 
-    sensitivity(startAlt=0, endAlt=-1) {
+    sensitivity(startAlt=0, endAlt=-1, sort=null) {
       let nalts = this.nalts();
       if (endAlt < 0) {
         endAlt = nalts
@@ -610,6 +610,7 @@ class AHPTreeNode extends Prioritizer {
           }
       }
       this.sensitivity_scores = rval
+      if (sort) rval.sort((a, b) => { return a > b ? sort == 'asc' ? 1 : -1 : a == b ? 0 : sort == 'asc' ? -1 : 1; });
       return rval
     }
 
@@ -629,11 +630,11 @@ class AHPTreeNode extends Prioritizer {
     2 children with the scores weighted by criteria scores.  So alt_breakdowns[0]
     sums to 0.75.
     */
-    sensitivityFull(startAlt=0, endAlt=-1) {
+    sensitivityFull(startAlt=0, endAlt=-1, sort=null) {
       let nalts = this.nalts()
       let nkids = this.nchildren()
       let rval = {}
-      rval["alt_scores"] = this.sensitivity(startAlt=startAlt, endAlt=endAlt)
+      rval["alt_scores"] = this.sensitivity(startAlt=startAlt, endAlt=endAlt, sort)
       let breakdowns = []
       let childScores = this.getSensitivityWeights()
       for (let alt=0; alt < nalts; alt++) {
