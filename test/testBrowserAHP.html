@@ -254,7 +254,7 @@
 
       //node.pairwise(0, 1, 2)
 
-      let scores = node.sensitivity()
+      let scores = node.sensitivity(0, -1);
       expect(scores[0]).toBeCloseTo((1*0.7+1*0.1)/2)
       expect(scores[1]).toBeCloseTo((1*0.5+1*0.4)/2)
       expect(scores[2]).toBeCloseTo((1*1.0 + 1*0.8)/2)
