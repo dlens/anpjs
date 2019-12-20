@@ -133,6 +133,27 @@ function vNormalize(vec, inline=true) {
    }
 }
 
+function vIdealize(vec, inline=true) {
+   let maxv = Math.max(...vec)
+   let rval = null
+   if (inline) {
+       rval = vec
+   } else {
+       rval = vInit(vec.length)
+   }
+
+   if (maxv != 0.0) {
+       for(let i=0; i < vec.length; i++) {
+           rval[i] = vec[i] / maxv
+       }
+   }
+   if (inline) {
+       return
+   } else {
+       return rval
+   }
+}
+
 function mSquareAddPos(mat) {
     let size = mat.length
     let newRow = []
@@ -778,6 +799,79 @@ class AHPTreeNode extends Prioritizer {
           //console.log(rval.sensitivity_weights)
         }
         return rval
+    }
+
+    /*
+    Performs the VROI calculation with column / costs. If column is
+    null, we call sensitivity first to get the column and then perform the
+    calculation.  This returns an dictionary of lists.  The element["vroiRaw"] is the
+    raw vroi score vector.  The element["vroiIdeal"] is the idealized vroi (the
+    raw vroi divided by the max raw vroi, so that the largest element is 1
+    in that vector).  The element["popRaw"] is the raw Price of Priority
+    which is cost / (score * 100).  The element["popIdeal"] is the same
+    except idealized
+    */
+    vroiCalc(costs, column=null, undefinedValue=null) {
+      if (column == null) {
+        column = this.sensitivity();
+      }
+      if (costs.length != this.nalts()) {
+        throw "Costs length="+costs.length+" must equal number of alts="+this.nalts();
+      } else if (column.length != this.nalts()) {
+        throw "Column of values length must equal number of alts"
+      }
+      let vroiRaw = Array(costs.length)
+      let vroiIdeal = Array(costs.length)
+      let maxvroi = 0
+      let popRaw = Array(costs.length)
+      let popIdeal = Array(costs.length)
+      let maxpop = 0
+      for(let i=0; i < costs.length; i++) {
+        if (costs[i] != 0) {
+          vroiRaw[i] = column[i] / costs[i];
+          if (maxvroi < vroiRaw[i]) {
+            maxvroi = vroiRaw[i]
+          }
+        } else {
+          vroiRaw[i] = undefinedValue;
+        }
+        if (column[i] != 0) {
+          popRaw[i] = costs[i] / (100*column[i])
+          if (maxpop < popRaw[i]) {
+            maxpop = popRaw[i]
+          }
+        } else {
+          popRaw[i] = undefinedValue
+        }
+      }
+      //Create ideal vectors
+      for(let i=0; i < costs.length; i++) {
+        if (maxvroi!=0) {
+          if (vroiRaw[i]!=undefinedValue) {
+            vroiIdeal[i]=vroiRaw[i]/maxvroi
+          } else {
+            vroiIdeal[i]=undefinedValue
+          }
+        } else {
+          vroiIdeal[i]=vroiRaw[i]
+        }
+        if (maxpop != 0) {
+          if (popRaw[i] != undefinedValue) {
+            popIdeal[i] = popRaw[i] / maxpop;
+          } else {
+            popIdeal[i] = undefinedValue
+          }
+        } else {
+          popIdeal[i] = popRaw[i]
+        }
+      }
+      //Our return value
+      return {
+        "vroiRaw" : vroiRaw,
+        "vroiIdeal" : vroiIdeal,
+        "popRaw" : popRaw,
+        "popIdeal" : popIdeal
+      }
     }
 }
 

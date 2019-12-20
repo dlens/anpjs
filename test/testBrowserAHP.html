@@ -419,6 +419,102 @@
       child = node.getChildWithName("crit22")
       expect(child).toBeNull()
     })
+    test("vroi", () => {
+      let node = new AHPTreeNode(null, 3)
+      let c1 = node.addChild()
+      let c2 = node.addChild()
+      c1.setAltScore(0, 0.7)
+      c1.setAltScore(1, 0.5)
+      c1.setAltScore(2, 1.0)
+
+      c2.setAltScore(0, 0.1)
+      c2.setAltScore(1, 0.4)
+      c2.setAltScore(2, 0.8)
+
+      //node.pairwise(0, 1, 2)
+
+      let scores = node.sensitivity()
+      expect(scores[0]).toBeCloseTo((1*0.7+1*0.1)/2)
+      expect(scores[1]).toBeCloseTo((1*0.5+1*0.4)/2)
+      expect(scores[2]).toBeCloseTo((1*1.0 + 1*0.8)/2)
+
+      let costs = [100, 200, 300]
+      let vroiInfo = node.vroiCalc(costs)
+      let vroiRaw = vroiInfo["vroiRaw"]
+      let vroiIdeal = vroiInfo["vroiIdeal"]
+      let popRaw = vroiInfo["popRaw"]
+      let popIdeal = vroiInfo["popIdeal"]
+      expect(vroiRaw[0]).toBeCloseTo(scores[0]/costs[0])
+      expect(vroiRaw[1]).toBeCloseTo(scores[1]/costs[1])
+      expect(vroiRaw[2]).toBeCloseTo(scores[2]/costs[2])
+
+      let m = Math.max(...vroiRaw)
+      expect(vroiIdeal[0]).toBeCloseTo(scores[0]/costs[0] / m)
+      expect(vroiIdeal[1]).toBeCloseTo(scores[1]/costs[1] / m)
+      expect(vroiIdeal[2]).toBeCloseTo(scores[2]/costs[2] / m)
+
+      expect(popRaw[0]).toBeCloseTo(costs[0] / (100*scores[0]))
+      expect(popRaw[1]).toBeCloseTo(costs[1] / (100*scores[1]))
+      expect(popRaw[2]).toBeCloseTo(costs[2] / (100*scores[2]))
+
+      m = Math.max(...popRaw)
+      expect(popIdeal[0]).toBeCloseTo(popRaw[0] / m)
+      expect(popIdeal[1]).toBeCloseTo(popRaw[1] / m)
+      expect(popIdeal[2]).toBeCloseTo(popRaw[2] / m)
+
+      //Check with manual scores
+      scores = [0.5, 1, 0.9]
+      vroiInfo = node.vroiCalc(costs, scores)
+      vroiRaw = vroiInfo["vroiRaw"]
+      vroiIdeal = vroiInfo["vroiIdeal"]
+      popRaw = vroiInfo["popRaw"]
+      popIdeal = vroiInfo["popIdeal"]
+      expect(vroiRaw[0]).toBeCloseTo(scores[0]/costs[0])
+      expect(vroiRaw[1]).toBeCloseTo(scores[1]/costs[1])
+      expect(vroiRaw[2]).toBeCloseTo(scores[2]/costs[2])
+
+      m = Math.max(...vroiRaw)
+      expect(vroiIdeal[0]).toBeCloseTo(scores[0]/costs[0] / m)
+      expect(vroiIdeal[1]).toBeCloseTo(scores[1]/costs[1] / m)
+      expect(vroiIdeal[2]).toBeCloseTo(scores[2]/costs[2] / m)
+
+      expect(popRaw[0]).toBeCloseTo(costs[0] / (100*scores[0]))
+      expect(popRaw[1]).toBeCloseTo(costs[1] / (100*scores[1]))
+      expect(popRaw[2]).toBeCloseTo(costs[2] / (100*scores[2]))
+
+      m = Math.max(...popRaw)
+      expect(popIdeal[0]).toBeCloseTo(popRaw[0] / m)
+      expect(popIdeal[1]).toBeCloseTo(popRaw[1] / m)
+      expect(popIdeal[2]).toBeCloseTo(popRaw[2] / m)
+
+      //Check with zero costs
+      scores = [0.5, 1, 0.9]
+      costs = [0, 100, 200]
+      vroiInfo = node.vroiCalc(costs, scores)
+      vroiRaw = vroiInfo["vroiRaw"]
+      vroiIdeal = vroiInfo["vroiIdeal"]
+      popRaw = vroiInfo["popRaw"]
+      popIdeal = vroiInfo["popIdeal"]
+      expect(vroiRaw[0]).toBeCloseTo(null)
+      expect(vroiRaw[1]).toBeCloseTo(scores[1]/costs[1])
+      expect(vroiRaw[2]).toBeCloseTo(scores[2]/costs[2])
+
+      m = Math.max(...vroiRaw)
+      expect(vroiIdeal[0]).toBeCloseTo(null)
+      expect(vroiIdeal[1]).toBeCloseTo(scores[1]/costs[1] / m)
+      expect(vroiIdeal[2]).toBeCloseTo(scores[2]/costs[2] / m)
+
+      expect(popRaw[0]).toBeCloseTo(costs[0] / (100*scores[0]))
+      expect(popRaw[1]).toBeCloseTo(costs[1] / (100*scores[1]))
+      expect(popRaw[2]).toBeCloseTo(costs[2] / (100*scores[2]))
+
+      m = Math.max(...popRaw)
+      expect(popIdeal[0]).toBeCloseTo(popRaw[0] / m)
+      expect(popIdeal[1]).toBeCloseTo(popRaw[1] / m)
+      expect(popIdeal[2]).toBeCloseTo(popRaw[2] / m)
+
+    })
+
      </script>
   </body>
 </head>
