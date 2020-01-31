@@ -2,6 +2,9 @@
 /*****************************************/
 /**  The basic mathematical functions   **/
 /*****************************************/
+
+function isNumber(n) { return !isNaN(parseFloat(n)) && !isNaN(n - 0) }
+
 function vInit(size, def_val=0) {
   let rval = []
   for(let i=0; i < size; i++)
@@ -624,11 +627,23 @@ class AHPTreeNode extends Prioritizer {
     for(let i=0; i < rval.length; i++) {
       rval[i] = 0
     }
+    let childrenAltScoresArray = [];
     for(let i=0; i < this.children.length; i++) {
-        let vals = this.children[i].sensitivity(startAlt, endAlt)
-        for(let alt=0; alt < nalts; alt++) {
-            rval[alt] += childScores[i] * vals[alt]
+      childrenAltScoresArray.push(this.children[i].sensitivity(startAlt, endAlt));
+    }
+    let altScore=0;
+    for(let alt=0; alt < nalts; alt++) {
+      let totalPriorityForAlt = 0;
+      for(let kid=0; kid < this.children.length; kid++) {
+        altScore = childrenAltScoresArray[kid][alt];
+        if (isNumber(altScore)) {
+          rval[alt] += childScores[kid] * altScore;
+          totalPriorityForAlt += childScores[kid];
         }
+      }
+      if (totalPriorityForAlt != 0) {
+        rval[alt] = rval[alt] / totalPriorityForAlt;
+      }
     }
     this.sensitivity_scores = rval
     return rval
