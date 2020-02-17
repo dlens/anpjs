@@ -187,7 +187,7 @@
       jsonString = '{\
           "name" : "Main",\
           "description" : "How can I describe myself I am funny, and quirky, and like long walks on beaches.", \
-          "alt_names" : ["alt1", "alt2", "alt3"],\
+          "alts" : ["alt1", "alt2", "alt3"],\
 \
           "children": [\
               {"name": "crit1", "description": "The first criterion", "alt_scores": [1, 0.5, 0.25]},\
@@ -359,7 +359,7 @@
       let json = {
           "name" : "Main",
           "description" : "How can I describe myself I am funny, and quirky, and like long walks on beaches.",
-          "alt_names" : ["alt1", "alt2"],
+          "alts" : ["alt1", "alt2"],
           "children": [
               {"name": "crit1", "description": "The first criterion", "alt_scores": [1, 0.5]},
               {"name": "crit2", "description": "Criterion the 2nd", "alt_scores": [0.25, 1]},
@@ -379,7 +379,7 @@
       json = {
           "name" : "Main",
           "description" : "How can I describe myself I am funny, and quirky, and like long walks on beaches.",
-          "alt_names" : ["alt1", "alt2"],
+          "alts" : ["alt1", "alt2"],
           "children": [
               {"name": "crit1", "description": "The first criterion", "alt_scores": [1, 0.5]},
               {"name": "crit2", "description": "Criterion the 2nd", "alt_scores": [0.25, 1]},
@@ -402,7 +402,7 @@
       let json = {
           "name" : "Main",
           "description" : "How can I describe myself I am funny, and quirky, and like long walks on beaches.",
-          "alt_names" : ["alt1", "alt2"],
+          "alts" : ["alt1", "alt2"],
           "children": [
               {"name": "crit1", "description": "The first criterion", "alt_scores": [1, 0.5]},
               {"name": "crit2", "description": "Criterion the 2nd", "alt_scores": [0.25, 1]},
@@ -512,6 +512,62 @@
       expect(popIdeal[0]).toBeCloseTo(popRaw[0] / m)
       expect(popIdeal[1]).toBeCloseTo(popRaw[1] / m)
       expect(popIdeal[2]).toBeCloseTo(popRaw[2] / m)
+
+    })
+
+    test('getChildWithName() recursive check', () => {
+        let node = new AHPTreeNode(null, 3)
+        let c1 = node.addChildName("c1")
+        let c2 = node.addChildName("c2")
+        let c11 = c1.addChildName("c11")
+        let c12 = c1.addChildName("c12")
+        expect(node.getChildWithName("c1")).toBe(c1)
+        expect(node.getChildWithName("c2")).toBe(c2)
+        expect(node.getChildWithName("ab")).toBeNull()
+        expect(node.getChildWithName("c11")).toBe(c11)
+    })
+
+    test('getChildWithId() recursive check', () => {
+        let node = new AHPTreeNode(null, 3)
+        let c1 = node.addChildName("c1", "", id=1)
+        let c2 = node.addChildName("c2", "", id=2)
+        let c11 = c1.addChildName("c11", "", id=3)
+        let c12 = c1.addChildName("c12", "",  id=4)
+        expect(node.getChildWithId(1)).toBe(c1)
+        expect(node.getChildWithId(2)).toBe(c2)
+        expect(node.getChildWithId(0)).toBeNull()
+        expect(node.getChildWithId(3)).toBe(c11)
+        expect(node.getChildWithId(4)).toBe(c12)
+    })
+
+    test('topParent() recursive check', () => {
+        let node = new AHPTreeNode(null, 3)
+        let c1 = node.addChildName("c1", "", id=1)
+        let c2 = node.addChildName("c2", "", id=2)
+        let c11 = c1.addChildName("c11", "", id=3)
+        let c12 = c1.addChildName("c12", "",  id=4)
+        let c111 = c11.addChildName("c111", "",  id=5)
+        expect(node.topParentNode()).toBe(node)
+        expect(c1.topParentNode()).toBe(node)
+        expect(c2.topParentNode()).toBe(node)
+        expect(c11.topParentNode()).toBe(node)
+        expect(c111.topParentNode()).toBe(node)
+    })
+
+    test('pairwiseId()', () => {
+        let node = new AHPTreeNode(null, 3)
+        let c1 = node.addChildName("c1", "", id=1)
+        let c2 = node.addChildName("c2", "", id=2)
+        let c11 = c1.addChildName("c11", "", id=3)
+        let c12 = c1.addChildName("c12", "",  id=4)
+        let c13 = c1.addChildName("c13", "",  id=5)
+        node.pairwiseId(1, 2, 5)
+        expect(node.getPairwiseId(1, 2)).toBe(5)
+        node.pairwiseId(3,4, 6)
+        expect(node.getPairwiseId(3,4)).toBe(6)
+        expect(() => {
+          node.pairwiseId(1, 3, 5)
+        }).toThrow()
 
     })
 
