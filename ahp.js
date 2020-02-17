@@ -982,6 +982,26 @@ class AHPTreeNode extends Prioritizer {
         "popIdeal" : popIdeal
       }
     }
+
+    /**
+     * Returns an HTML element that represents the criteria
+     * with descriptions:
+     */
+    getCriteriaTreeHtml(classText=null) {
+      let rval = "";
+      if (classText==null) {
+        rval = "<ol>\n";
+      } else {
+        rval = "<ol class=\""+classText+"\">\n";
+      }
+      for(let i=0; i < this.children.length; i++) {
+        let child = this.children[i]
+        rval += "<li><span class=\"list-definition-term\">"+child.name+":</span> <span class=\"list-definition-definition\">"+child.description+"</span>\n";
+        rval += child.getCriteriaTreeHtml(classText)
+      }
+      rval+="</ol>\n";
+      return rval;
+    }
 }
 
 /**
