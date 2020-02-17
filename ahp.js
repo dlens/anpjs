@@ -1028,3 +1028,42 @@ function convertIntegerSymbolicVote(vote, better=2, much_better=5) {
       throw "Unknown symbolic vote "+vote
   }
 }
+
+/**
+ * Converts a numeric vote to a symbolic one, based on the
+ * values of better and much better given.  If:
+ * * vote is 0 that means no vote and we return undefined
+ * * vote is within epsilon of much_better we return 2
+ * * vote is within epsilon of better we return 1
+ * * vote is within epsilon of 1 we return 0
+ * * 1/vote is within epsilon of better we return -1
+ * * 1/vote is within epsilon of much_better we return -2
+ * * otherwise we return undefined.
+ */
+function convertNumericVoteToIntegerSymbolic(vote, better=2, much_better=5, epsilon=0.1) {
+  if (vote == null) {
+    //No vote given, none sent back
+    return undefined
+  } else if (vote == 0) {
+    //No vote for this return undefined
+    return undefined
+  } else if (Math.abs(vote - much_better) < epsilon) {
+    //A much better vote
+    return 2
+  } else if (Math.abs(vote - better) < epsilon) {
+    //A better vote
+    return 1
+  } else if (Math.abs(vote - 1) < epsilon) {
+    //An equals
+    return 0
+  } else if (Math.abs(1.0/vote - better) < epsilon) {
+    //A better vote in the opposite directon
+    return -1
+  } else if (Math.abs(1.0/vote - much_better) < epsilon) {
+    //A better vote in the opposite directon
+    return -2
+  } else {
+    //I don't know what kind of vote this is, log it and return undef
+    console.log("Unknown symbolic vote "+vote)
+  }
+}
