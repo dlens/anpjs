@@ -674,9 +674,27 @@ class AHPTreeNode extends Prioritizer {
     let childScores = this.getSensitivityWeights()
     for (let alt=0; alt < nalts; alt++) {
       let breakdown =[]
+      let totalWithoutNaNs=0
+      //First let's get the total weights of the children where this alt has non-NaN scores
       for (let child=0; child < nkids; child++) {
         let c = this.getChildWithIndex(child)
-        breakdown.push(childScores[child] * c.sensitivity_scores[alt])
+        if (Number.isNaN(c.sensitivity_scores[alt]) || (c.sensitivity_scores[alt] === null)) {
+          //Wasn't a number, do not add to total
+        } else {
+          //was a number, add to total
+          totalWithoutNaNs+=childScores[child]
+        }
+      }
+      //Okay now we have that total, we need to divide all by each breakdown by
+      //that total, assuming the total is not 0.  If the total is zero, we can
+      //just set the total to 1
+      if (totalWithoutNaNs == 0) {
+        totalWithoutNaNs=1;
+      }
+      //We we can do the actual breakdown calcs
+      for (let child=0; child < nkids; child++) {
+        let c = this.getChildWithIndex(child)
+        breakdown.push(childScores[child] * c.sensitivity_scores[alt] / totalWithoutNaNs)
       }
       breakdowns.push(breakdown)
     }
