@@ -757,7 +757,7 @@ class AHPTreeNode extends Prioritizer {
       //First let's get the total weights of the children where this alt has non-NaN scores
       for (let child=0; child < nkids; child++) {
         let c = this.getChildWithIndex(child)
-        if (Number.isNaN(c.sensitivity_scores[alt]) || (c.sensitivity_scores[alt] === null)) {
+        if (!isNumber(c.sensitivity_scores[alt])) {
           //Wasn't a number, do not add to total
         } else {
           //was a number, add to total
