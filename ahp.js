@@ -388,7 +388,7 @@ class Pairwise extends Prioritizer {
 }
 
 class AHPTreeNode extends Prioritizer {
-  constructor(parentNode, size, name=null, description=null, altNames=null) {
+  constructor(parentNode, size, name=null, description=null, altNames=null, id=null) {
       super(size, altNames)
       this.children = []
       this.sensitivity_weights_locked = []
@@ -399,6 +399,7 @@ class AHPTreeNode extends Prioritizer {
       this.sensitivity_scores = []
       //this.altPrioritizer = null
       this.parentNode = parentNode
+      this.id = id
   }
   getChildWithIndex(index) {
     return this.children[index]
@@ -406,15 +407,51 @@ class AHPTreeNode extends Prioritizer {
 
   getChildWithName(name) {
     for(let i=0; i < this.children.length; i++) {
-      if (this.children[i].name == name) {
-        return this.children[i]
+      let child = this.children[i]
+      if (child.name == name) {
+        return child
+      } else {
+        //Okay check this fellow's children for the given name
+        let rval = child.getChildWithName(name)
+        if (rval != null) {
+          //One of the children had this name
+          return rval
+        }
       }
     }
     return null
   }
 
-  addChildName(name, description=null) {
-    let childNode = new AHPTreeNode(this, this.alts.length, name, description)
+  getChildIndexWithName(name) {
+    for(let i=0; i < this.children.length; i++) {
+      let child = this.children[i]
+      if (child.name == name) {
+        return i
+      }
+    }
+    return -1
+  }
+
+
+  getChildWithId(id) {
+    for(let i=0; i < this.children.length; i++) {
+      let child = this.children[i]
+      if (child.id == id) {
+        return child
+      } else {
+        //Okay check this fellow's children for the given name
+        let rval = child.getChildWithId(id)
+        if (rval != null) {
+          //One of the children had this name
+          return rval
+        }
+      }
+    }
+    return null
+  }
+
+  addChildName(name, description=null, id=null) {
+    let childNode = new AHPTreeNode(this, this.alts.length, name, description, null, id)
     return this.addChild(childNode)
   }
 
@@ -431,6 +468,48 @@ class AHPTreeNode extends Prioritizer {
 
   pairwise(child1, child2, value) {
       this.childPrioritizer.set(child1, child2, value)
+  }
+
+  pairwiseId(rowId, colId, value) {
+    let top = this.topParentNode()
+    let rowNode = this.getChildWithId(rowId)
+    let colNode = this.getChildWithId(colId)
+    let rowParentNode = rowNode.parentNode
+    let colParentNode = colNode.parentNode
+    let rowNodeName = rowNode.name
+    let colNodeName = colNode.name
+    let rowIndex = rowParentNode.getChildIndexWithName(rowNodeName)
+    let colIndex = colParentNode.getChildIndexWithName(colNodeName)
+    if (rowParentNode != colParentNode) {
+      throw "Row node and column node do not have the same parent"
+    }
+    rowParentNode.pairwise(rowIndex, colIndex, value)
+  }
+
+  getPairwiseId(rowId, colId) {
+    let top = this.topParentNode()
+    let rowNode = this.getChildWithId(rowId)
+    let colNode = this.getChildWithId(colId)
+    let rowParentNode = rowNode.parentNode
+    let colParentNode = colNode.parentNode
+    let rowNodeName = rowNode.name
+    let colNodeName = colNode.name
+    let rowIndex = rowParentNode.getChildIndexWithName(rowNodeName)
+    let colIndex = colParentNode.getChildIndexWithName(colNodeName)
+    if (rowParentNode != colParentNode) {
+      throw "Row node and column node do not have the same parent"
+    }
+    return rowParentNode.getPairwise(rowIndex, colIndex)
+  }
+
+  topParentNode() {
+    if (this.parentNode == null) {
+      //We are the top parent
+      return this
+    } else {
+      //We have a parent, which may or may not be the top, ask her
+      return this.parentNode.topParentNode()
+    }
   }
 
   pairwiseAll(pwArray) {
@@ -761,23 +840,23 @@ class AHPTreeNode extends Prioritizer {
       "winPercents":winPercents
     }
   }
+
   static fromJSONObject(obj, parentNode) {
       let size = 0
-      if (parentNode != null) {
-          //Get the size from the parent
-          size = parentNode.nalts()
+      if (parentNode == null) {
+        //We are the first parent, so we have alts
+        size = obj.alts.length
       } else {
-          //We are the first parent, so we have alt_names
-          size = obj.alt_names.length
+        //Get the size from the parent
+        size = parentNode.nalts()
       }
-      let rval = new AHPTreeNode(parentNode, size, obj.name, obj.description)
-
+      let rval = new AHPTreeNode(parentNode, size, obj.name, obj.description, null, obj.id)
       if (parentNode != null) {
           //We have a parent node, we should use their alternative names
           rval.alts = parentNode.alts
       } else {
           //We need alt names from the object
-          rval.alts = obj.alt_names
+          rval.alts = obj.alts
           if (obj.alt_descriptions != null) {
             rval.alt_descriptions = obj.alt_descriptions
           } else {
@@ -788,24 +867,32 @@ class AHPTreeNode extends Prioritizer {
           }
       }
       // Get children
-      if (obj.children != null) {
+      if ((obj.children != null) && (obj.children.length > 0)) {
           for (let i=0; i < obj.children.length; i++) {
               let kid = AHPTreeNode.fromJSONObject(obj.children[i], rval)
               rval.addChild(kid)
           }
           //Bottom level ones should probably have a pairwise matrix
+          var pw
           if (obj.pairwise == null) {
-              throw "We need a pairwise matrix for node "+obj.name
+            if (obj.childPrioritizer == null) {
+              throw "For node "+obj.name+" we need a pairwise matrix either from pairwise property, or inside a Pairwise childPrioritizer"
+            } else if (obj.childPrioritizer.matrix == null) {
+              throw "For node "+obj.name+" you did not provide a pairwise property, but did provide a childPrioritizer, but that object had no matrix"
+            } else {
+              pw = obj.childPrioritizer.matrix
+            }
           } else {
-              let nkids = obj.children.length
-              for (let row=0; row < nkids; row++) {
-                  for (let col=0; col < nkids; col++) {
-                      if (row != col) {
-                          let val = obj.pairwise[row][col]
-                          if (val >= 1) {
-                              //Only set for values >= 1, the others are reciprocals
-                              rval.childPrioritizer.set(row, col, val)
-                          }
+            pw = obj.pairwise
+          }
+          let nkids = obj.children.length
+          for (let row=0; row < nkids; row++) {
+              for (let col=0; col < nkids; col++) {
+                  if (row != col) {
+                      let val = pw[row][col]
+                      if (val >= 1) {
+                          //Only set for values >= 1, the others are reciprocals
+                          rval.childPrioritizer.set(row, col, val)
                       }
                   }
               }
@@ -814,9 +901,14 @@ class AHPTreeNode extends Prioritizer {
           //Bottom level alts can have scores
           if (obj.alt_scores != null) {
               if (obj.alt_scores.length != rval.nalts()) {
-                  throw "Alt scores of wrong length"
+                throw "For node "+obj.name+" alt scores set as alt_scores are of the wrong length";
               }
               rval.direct_data = obj.alt_scores
+          } else if (obj.direct_data != null) {
+            if (obj.direct_data.length != rval.nalts()) {
+              throw "For node "+obj.name+" alt scores set as direct_data are of the wrong length";
+            }
+            rval.direct_data = obj.direct_data
           }
       }
       // Check for sensitivity weights
@@ -831,6 +923,8 @@ class AHPTreeNode extends Prioritizer {
         rval.getSensitivityWeights()
         //console.log(rval.sensitivity_weights)
       }
+      //Add in the pairwiseOrderByIds
+      rval.pairwiseOrderByIds = obj.pairwiseOrderByIds
       return rval
     }
 
@@ -906,6 +1000,26 @@ class AHPTreeNode extends Prioritizer {
         "popIdeal" : popIdeal
       }
     }
+
+    /**
+     * Returns an HTML element that represents the criteria
+     * with descriptions:
+     */
+    getCriteriaTreeHtml(classText=null) {
+      let rval = "";
+      if (classText==null) {
+        rval = "<ol>\n";
+      } else {
+        rval = "<ol class=\""+classText+"\">\n";
+      }
+      for(let i=0; i < this.children.length; i++) {
+        let child = this.children[i]
+        rval += "<li><span class=\"list-definition-term\">"+child.name+":</span> <span class=\"list-definition-definition\">"+child.description+"</span>\n";
+        rval += child.getCriteriaTreeHtml(classText)
+      }
+      rval+="</ol>\n";
+      return rval;
+    }
 }
 
 /**
@@ -925,4 +1039,69 @@ function randn_bm(min, max, skew=1) {
   num *= max - min; // Stretch to fill range
   num += min; // offset to min
   return num;
+}
+
+/**
+ * Converts an integer vote of 2, 1, 0, -1, -2 to values of
+ * much_better, better, 1, 1/better, 1/much_better.
+ */
+function convertIntegerSymbolicVote(vote, better=2, much_better=5) {
+  switch(vote) {
+    case 0:
+      //They are equal
+      return 1;
+    case 1:
+      //Row is better
+      return better;
+    case 2:
+      //Row is much Better
+      return much_better;
+    case -1:
+      //col is better
+      return 1.0/better;
+    case -2:
+      //col is much better
+      return 1.0/much_better;
+    default:
+      throw "Unknown symbolic vote "+vote
+  }
+}
+
+/**
+ * Converts a numeric vote to a symbolic one, based on the
+ * values of better and much better given.  If:
+ * * vote is 0 that means no vote and we return undefined
+ * * vote is within epsilon of much_better we return 2
+ * * vote is within epsilon of better we return 1
+ * * vote is within epsilon of 1 we return 0
+ * * 1/vote is within epsilon of better we return -1
+ * * 1/vote is within epsilon of much_better we return -2
+ * * otherwise we return undefined.
+ */
+function convertNumericVoteToIntegerSymbolic(vote, better=2, much_better=5, epsilon=0.1) {
+  if (vote == null) {
+    //No vote given, none sent back
+    return undefined
+  } else if (vote == 0) {
+    //No vote for this return undefined
+    return undefined
+  } else if (Math.abs(vote - much_better) < epsilon) {
+    //A much better vote
+    return 2
+  } else if (Math.abs(vote - better) < epsilon) {
+    //A better vote
+    return 1
+  } else if (Math.abs(vote - 1) < epsilon) {
+    //An equals
+    return 0
+  } else if (Math.abs(1.0/vote - better) < epsilon) {
+    //A better vote in the opposite directon
+    return -1
+  } else if (Math.abs(1.0/vote - much_better) < epsilon) {
+    //A better vote in the opposite directon
+    return -2
+  } else {
+    //I don't know what kind of vote this is, log it and return undef
+    console.log("Unknown symbolic vote "+vote)
+  }
 }
