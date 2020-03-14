@@ -1105,3 +1105,64 @@ function convertNumericVoteToIntegerSymbolic(vote, better=2, much_better=5, epsi
     console.log("Unknown symbolic vote "+vote)
   }
 }
+
+/**
+* Noralizes strings by collapsing spaces, making it lower case, removing
+punctuation, etc.
+*/
+function stringNormalize(sval) {
+  let rval = sval.toLowerCase();
+  rval = rval.replace(/[\.\,\;\:\?\!]/g, ' ')
+  rval = rval.trim()
+  rval = rval.replace(/\s+/g, ' ')
+  return rval
+}
+/**
+  * Converts a verbal/string vote of A is better to a numeric value for the
+  * pairwise comparison matrix.
+*/
+function betterScaleToNumeric(vote, rowName, colName, betterVal=2.0, muchBetterVal=5.0) {
+  var dom = null
+  var numericVote = null
+  rowName = stringNormalize(rowName)
+  colName = stringNormalize(colName)
+  if (vote.endsWith("is much better")) {
+    //Okay we have a much better vote, we need to get the name of the dominate option
+    let myRe = /^(.+)\s+is\s+much\s+better$/
+    let vals = vote.match(myRe)
+    if ((vals==null) || (vals.length==0)) {
+      //No match, it looked like a "much better", but wasn't.  Shouldn't happen
+      throw "Vote '"+vote+"' looked like a much better vote, but failed to parse"
+    }
+    dom = stringNormalize(vals[1])
+    console.log("Much better: '"+dom+"' hope this makes sense")
+    numericVote = muchBetterVal
+  } else if (vote.endsWith("is better")) {
+    //Have a better, but not "much better" vote.  Need to get the dominant node name
+    let myRe = /^(.+)\s+is\s+better$/
+    let vals = vote.match(myRe)
+    if ((vals==null) || (vals.length==0)) {
+      //No match, it looked like a "better", but wasn't.  Shouldn't happen
+      throw "Vote '"+vote+"' looked like a better vote, but failed to parse"
+    }
+    dom = stringNormalize(vals[1])
+    console.log("Better: '"+dom+"' hope this makes sense")
+    numericVote = betterVal
+  } else if (vote.endsWith("equal")) {
+    //Have an equality vote
+    //Doesn't matter which we say is dominant, call it rowName
+    dom = rowName
+    numericVote = 1
+  } else {
+    throw "Vote '"+vote+"' was neither better, nor much better, nor equals, we give up"
+  }
+  if (dom == rowName) {
+    //The dominant node was the row node, so return the vote value
+    return numericVote
+  } else if (dom == colName) {
+    //The dominant was the column, so we return the reciprocal of the vote
+    return 1.0/numericVote
+  } else {
+    throw "The dominant node from the vote was '"+dom+"' which was neither the row nor the column"
+  }
+}
