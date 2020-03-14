@@ -576,7 +576,19 @@
       expect(stringNormalize(val1)).toBe("hello world")
     })
 
-    test('betterScaleToNumeric()', () => {
+    test('betterScaleToNumeric() with important', () => {
+      let a="Option number 1"
+      let b="Option numbered 2"
+      let vote=a+" is much better"
+      let val = betterScaleToNumeric(vote, a, b)
+      expect(val).toBe(5.0)
+      expect(betterScaleToNumeric(a+" is more important", a, b)).toBe(2.0)
+      expect(betterScaleToNumeric(a+" is much more important", a, b)).toBe(5.0)
+      expect(betterScaleToNumeric(b+" is more important", a, b)).toBe(1/2.0)
+      expect(betterScaleToNumeric("they are equal", b, a)).toBe(1)
+    })
+
+    test('betterScaleToNumeric() with better', () => {
       let a="Option number 1"
       let b="Option numbered 2"
       let vote=a+" is much better"

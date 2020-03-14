@@ -1181,28 +1181,24 @@ function stringNormalize(sval) {
 function betterScaleToNumeric(vote, rowName, colName, betterVal=2.0, muchBetterVal=5.0) {
   var dom = null
   var numericVote = null
+  var muchBetterRegexes = [
+    /^(.+)\s+is\s+much\s+better$/,
+    /^(.+)\s+is\s+much\s+more/,
+    /^(.+)\s+is\s+much\s+preferred$/
+  ]
+  var betterRegexes = [
+    /^(.+)\s+is\s+better$/,
+    /^(.+)\s+is\s+more/,
+    /^(.+)\s+is\s+preferred$/
+  ]
   rowName = stringNormalize(rowName)
   colName = stringNormalize(colName)
-  if (vote.endsWith("is much better")) {
-    //Okay we have a much better vote, we need to get the name of the dominate option
-    let myRe = /^(.+)\s+is\s+much\s+better$/
-    let vals = vote.match(myRe)
-    if ((vals==null) || (vals.length==0)) {
-      //No match, it looked like a "much better", but wasn't.  Shouldn't happen
-      throw "Vote '"+vote+"' looked like a much better vote, but failed to parse"
-    }
-    dom = stringNormalize(vals[1])
+  if ((dom=firstParenRegex(muchBetterRegexes, vote))!=null) {
+    dom = stringNormalize(dom)
     //console.log("Much better: '"+dom+"' hope this makes sense")
     numericVote = muchBetterVal
-  } else if (vote.endsWith("is better")) {
-    //Have a better, but not "much better" vote.  Need to get the dominant node name
-    let myRe = /^(.+)\s+is\s+better$/
-    let vals = vote.match(myRe)
-    if ((vals==null) || (vals.length==0)) {
-      //No match, it looked like a "better", but wasn't.  Shouldn't happen
-      throw "Vote '"+vote+"' looked like a better vote, but failed to parse"
-    }
-    dom = stringNormalize(vals[1])
+  } else if ((dom=firstParenRegex(betterRegexes, vote))!=null) {
+    dom = stringNormalize(dom)
     //console.log("Better: '"+dom+"' hope this makes sense")
     numericVote = betterVal
   } else if (vote.endsWith("equal")) {
@@ -1227,8 +1223,10 @@ function betterScaleToNumeric(vote, rowName, colName, betterVal=2.0, muchBetterV
 /**
 *
 */
-function betterScaleDataToAHP(colHeader, vote, ahpTreeNode, betterVal=2.0, muchBetterVal=5.0) {
+function betterScaleDataToAHP(colHeader, vote, ahpTreeNode, betterVal=2.0, muchBetterVal=5.0,
+  extraColHeaderRegexes=[]) {
   let regexes = [/"([^"]+)" versus "([^"]+)"/]
+  regexes.concat(extraColHeaderRegexes)
   colHeader = stringNormalize(colHeader)
   vote = stringNormalize(vote)
   let rowNode = null
@@ -1251,4 +1249,18 @@ function betterScaleDataToAHP(colHeader, vote, ahpTreeNode, betterVal=2.0, muchB
   let numericVote = betterScaleToNumeric(vote, rowNode, colNode, betterVal, muchBetterVal)
   console.log("'"+rowNode+"' vs '"+colNode+"'"+" vote = "+numericVote)
   ahpTreeNode.pairwiseName(rowNode, colNode, numericVote)
+}
+
+/**
+Each regex in regexes must have one () pair.  For the first string.match(regex)
+we return the () item, in other words the first match.
+*/
+function firstParenRegex(regexes, string) {
+    for (regex of regexes) {
+      let matches = string.match(regex)
+      if ((matches!=null) && (matches[1]!=null)) {
+        return matches[1]
+      }
+    }
+    //No match, return null
 }
