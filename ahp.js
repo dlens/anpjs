@@ -422,6 +422,35 @@ class AHPTreeNode extends Prioritizer {
     return null
   }
 
+  getChildWithNameNormalized(name) {
+    name = stringNormalize(name)
+    for(let i=0; i < this.children.length; i++) {
+      let child = this.children[i]
+      if (stringNormalize(child.name) == name) {
+        return child
+      } else {
+        //Okay check this fellow's children for the given name
+        let rval = child.getChildWithNameNormalized(name)
+        if (rval != null) {
+          //One of the children had this name
+          return rval
+        }
+      }
+    }
+    return null
+  }
+
+  getChildIndexWithNameNormalized(name) {
+    name = stringNormalize(name)
+    for(let i=0; i < this.children.length; i++) {
+      let child = this.children[i]
+      if (stringNormalize(child.name) == name) {
+        return i
+      }
+    }
+    return -1
+  }
+
   getChildIndexWithName(name) {
     for(let i=0; i < this.children.length; i++) {
       let child = this.children[i]
@@ -468,6 +497,34 @@ class AHPTreeNode extends Prioritizer {
 
   pairwise(child1, child2, value) {
       this.childPrioritizer.set(child1, child2, value)
+  }
+
+  pairwiseName(rowName, colName, value) {
+    let top = this.topParentNode()
+    let rowNode = this.getChildWithNameNormalized(rowName)
+    let colNode = this.getChildWithNameNormalized(colName)
+    let rowParentNode = rowNode.parentNode
+    let colParentNode = colNode.parentNode
+    let rowIndex = rowParentNode.getChildIndexWithNameNormalized(rowName)
+    let colIndex = colParentNode.getChildIndexWithNameNormalized(colName)
+    if (rowParentNode != colParentNode) {
+      throw "Row node and column node do not have the same parent"
+    }
+    rowParentNode.pairwise(rowIndex, colIndex, value)
+  }
+
+  getPairwiseName(rowName, colName) {
+    let top = this.topParentNode()
+    let rowNode = this.getChildWithNameNormalized(rowName)
+    let colNode = this.getChildWithNameNormalized(colName)
+    let rowParentNode = rowNode.parentNode
+    let colParentNode = colNode.parentNode
+    let rowIndex = rowParentNode.getChildIndexWithNameNormalized(rowName)
+    let colIndex = colParentNode.getChildIndexWithNameNormalized(colName)
+    if (rowParentNode != colParentNode) {
+      throw "Row node and column node do not have the same parent"
+    }
+    return rowParentNode.getPairwise(rowIndex, colIndex)
   }
 
   pairwiseId(rowId, colId, value) {
@@ -1135,7 +1192,7 @@ function betterScaleToNumeric(vote, rowName, colName, betterVal=2.0, muchBetterV
       throw "Vote '"+vote+"' looked like a much better vote, but failed to parse"
     }
     dom = stringNormalize(vals[1])
-    console.log("Much better: '"+dom+"' hope this makes sense")
+    //console.log("Much better: '"+dom+"' hope this makes sense")
     numericVote = muchBetterVal
   } else if (vote.endsWith("is better")) {
     //Have a better, but not "much better" vote.  Need to get the dominant node name
@@ -1146,7 +1203,7 @@ function betterScaleToNumeric(vote, rowName, colName, betterVal=2.0, muchBetterV
       throw "Vote '"+vote+"' looked like a better vote, but failed to parse"
     }
     dom = stringNormalize(vals[1])
-    console.log("Better: '"+dom+"' hope this makes sense")
+    //console.log("Better: '"+dom+"' hope this makes sense")
     numericVote = betterVal
   } else if (vote.endsWith("equal")) {
     //Have an equality vote
@@ -1165,4 +1222,33 @@ function betterScaleToNumeric(vote, rowName, colName, betterVal=2.0, muchBetterV
   } else {
     throw "The dominant node from the vote was '"+dom+"' which was neither the row nor the column"
   }
+}
+
+/**
+*
+*/
+function betterScaleDataToAHP(colHeader, vote, ahpTreeNode, betterVal=2.0, muchBetterVal=5.0) {
+  let regexes = [/"([^"]+)" versus "([^"]+)"/]
+  colHeader = stringNormalize(colHeader)
+  vote = stringNormalize(vote)
+  let rowNode = null
+  let colNode = null
+  //First we need to split the colHeader on the word, we try each regex
+  for (regex of regexes) {
+    let matches = colHeader.match(regex)
+    //console.log(matches)
+    if ((matches!=null) && (matches[1]!=null) && (matches[2]!=null)) {
+      //We found the match
+      rowNode = matches[1]
+      colNode = matches[2]
+      break
+    }
+  }
+  if ((rowNode == null) || (colNode==null)) {
+    //Not a comparison to look at.
+    return
+  }
+  let numericVote = betterScaleToNumeric(vote, rowNode, colNode, betterVal, muchBetterVal)
+  console.log("'"+rowNode+"' vs '"+colNode+"'"+" vote = "+numericVote)
+  ahpTreeNode.pairwiseName(rowNode, colNode, numericVote)
 }

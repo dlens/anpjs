@@ -586,6 +586,17 @@
       expect(betterScaleToNumeric(a+" is better", b, a)).toBe(1/2.0)
       expect(betterScaleToNumeric("they are equal", b, a)).toBe(1)
     })
+
+    test('betterScaleDataToAHP()', () => {
+      let colHeader = "When considering \"Option 1\" versus \"Option 2\", which is more preferred?"
+      let node = new AHPTreeNode(null, 3)
+      let c1 = node.addChildName("c 1", "", id=1)
+      let c2 = node.addChildName("c2", "", id=2)
+      let c11 = c1.addChildName("Option 1", "", id=3)
+      let c12 = c1.addChildName("Option 2", "",  id=4)
+      betterScaleDataToAHP(colHeader, "Option 1 is much better", node)
+      expect(node.getPairwiseName("Option 1", "Option 2", 5.0))
+    })
      </script>
   </body>
 </head>
