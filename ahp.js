@@ -1225,7 +1225,7 @@ function betterScaleToNumeric(vote, rowName, colName, betterVal=2.0, muchBetterV
 */
 function betterScaleDataToAHP(colHeader, vote, ahpTreeNode, betterVal=2.0, muchBetterVal=5.0,
   extraColHeaderRegexes=[]) {
-  let regexes = [/"([^"]+)" versus "([^"]+)"/]
+  let regexes = [/"([^"]+)" versus "([^"]+)"/, /^considering\s+(.*)\s+versus\s+(.*)$/]
   regexes.concat(extraColHeaderRegexes)
   colHeader = stringNormalize(colHeader)
   vote = stringNormalize(vote)
