@@ -1167,13 +1167,21 @@ function convertNumericVoteToIntegerSymbolic(vote, better=2, much_better=5, epsi
 * Noralizes strings by collapsing spaces, making it lower case, removing
 punctuation, etc.
 */
-function stringNormalize(sval) {
+function stringNormalizeHarsh(sval) {
   let rval = sval.toLowerCase();
   rval = rval.replace(/[\.\,\;\:\?\!]/g, ' ')
   rval = rval.trim()
   rval = rval.replace(/\s+/g, ' ')
   return rval
 }
+
+function stringNormalize(sval) {
+  sval = sval.trim()
+  sval = sval.replace(/\s+/g, ' ')
+  return sval
+}
+
+
 /**
   * Converts a verbal/string vote of A is better to a numeric value for the
   * pairwise comparison matrix.
@@ -1223,10 +1231,11 @@ function betterScaleToNumeric(vote, rowName, colName, betterVal=2.0, muchBetterV
 /**
 *
 */
-function betterScaleDataToAHP(colHeader, vote, ahpTreeNode, betterVal=2.0, muchBetterVal=5.0,
-  extraColHeaderRegexes=[]) {
+function betterScaleDataToAHP(colHeader, vote, ahpTreeNode, extraColHeaderRegexes=null, betterVal=2.0, muchBetterVal=5.0) {
   let regexes = [/"([^"]+)" versus "([^"]+)"/, /^considering\s+(.*)\s+versus\s+(.*)$/]
-  regexes.concat(extraColHeaderRegexes)
+  if (extraColHeaderRegexes != null) {
+    regexes = regexes.concat(extraColHeaderRegexes)
+  }
   colHeader = stringNormalize(colHeader)
   vote = stringNormalize(vote)
   let rowNode = null
