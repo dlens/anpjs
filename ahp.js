@@ -1077,6 +1077,130 @@ class AHPTreeNode extends Prioritizer {
       rval+="</ol>\n";
       return rval;
     }
+
+    /**
+    * Creates an ahpTreeNode from a matrix whose top row is the column names
+    */
+    static from_matrix(matrix, row=null, ratingsRow=1, betterVal=2.0, muchBetterVal=5.0) {
+      if (row == null) {
+        row = matrix.length-1
+      }
+      let headers = matrix[0]
+      //First get all of the node names and their parents
+      let nameAndParents = {}
+      let nameAndKids = {}
+      let items = new Set()
+      let match=null
+      for (let header of headers) {
+
+        if (match=header.match(/^(.+)\s+vs\s+(.+)\s+wrt\s+(.+)$/)) {
+          //We have A vs B wrt C
+          let dom = match[1]
+          let rec = match[2]
+          let parent = match[3]
+          items.add(dom)
+          items.add(rec)
+          items.add(parent)
+          if (!nameAndParents[dom]) {
+            nameAndParents[dom] = new Set()
+          }
+          if (!nameAndParents[rec]) {
+            nameAndParents[rec] = new Set()
+          }
+          if (!nameAndParents[parent]) {
+            nameAndParents[parent] = new Set()
+          }
+          if (!nameAndKids[parent]) {
+            nameAndKids[parent] = new Set()
+          }
+          nameAndParents[dom].add(parent)
+          nameAndParents[rec].add(parent)
+          nameAndKids[parent].add(dom)
+          nameAndKids[parent].add(rec)
+        } else if (match=header.match(/^(.+)\s+wrt\s+(.+)$/)) {
+          let dom = match[1]
+          let parent = match[2]
+          items.add(dom)
+          items.add(parent)
+          if (!nameAndParents[dom]) {
+            nameAndParents[dom] = new Set()
+          }
+          if (!nameAndParents[parent]) {
+            nameAndParents[parent] = new Set()
+          }
+          nameAndParents[dom].add(parent)
+        } else if (match=header.match(/^(.+)\s+vs\s+(.+)$/)) {
+          let dom=match[1]
+          let rec=match[2]
+          items.add(dom)
+          items.add(rec)
+          if (!nameAndParents[dom]) {
+            nameAndParents[dom] = new Set()
+          }
+          if (!nameAndParents[rec]) {
+            nameAndParents[rec] = new Set()
+          }
+        }
+      }
+      //Now I have the names of each alt/node with their parents
+      //any item with multiple parents is an alt, any item with one or
+      //fewer parents is a node
+      let nodes = []
+      let alts = []
+      for (let item of items) {
+        if (nameAndParents[item].size > 1) {
+          alts.push(item)
+        } else {
+          nodes.push(item)
+        }
+      }
+      let nAlts = alts.length
+      let rval = new AHPTreeNode(null, nAlts, "Our model", "Indescribable", null)
+      rval.alts = alts
+      //Now create the structure
+      function addAllUnder(nodeName, currentNode) {
+        let me=currentNode.addChildName(nodeName, "", "")
+        let kids = nameAndKids[nodeName]
+        if (kids != null) {
+          for (let kid of kids) {
+            addAllUnder(kid, me)
+          }
+        }
+      }
+      for (let node of nodes) {
+        if (nameAndParents[node].size == 0) {
+          //Have a top-level
+          addAllUnder(node, rval)
+        }
+      }
+      //Structure is complete, now I need to fill in the values
+      for (let column=0; column < headers.length; column++) {
+        let header = headers[column]
+        if ((match=header.match(/^(.+)\s+vs\s+(.+)\s+wrt\s+(.+)$/)) && (match.length > 2)) {
+          //We have A vs B wrt C
+          let rowNode = match[1]
+          let colNode = match[2]
+          let vote = matrix[row][column]
+          let numericVote = betterScaleToNumeric(vote, rowNode, colNode, betterVal, muchBetterVal)
+          rval.pairwiseName(rowNode, colNode, numericVote)
+        } else if ((match=header.match(/^(.+)\s+wrt\s+(.+)$/))  && (match.length > 2)) {
+          let alt = match[1]
+          let node = match[2]
+          let child = rval.getChildWithName(node)
+          let alt_index = alts.indexOf(alt)
+          let ratingsVote = Number(matrix[ratingsRow][column])
+          child.direct_data[alt_index] = ratingsVote
+        } else if ((match=header.match(/^(.+)\s+vs\s+(.+)$/))  && (match.length > 2)) {
+          let rowNode = match[1]
+          let colNode = match[2]
+          let vote = matrix[row][column]
+          let numericVote = betterScaleToNumeric(vote, rowNode, colNode, betterVal, muchBetterVal)
+          rval.pairwiseName(rowNode, colNode, numericVote)
+        }
+      }
+
+      return rval
+    }
 }
 
 /**
