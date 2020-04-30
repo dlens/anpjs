@@ -1,4 +1,6 @@
 # AHP Javascript library
+[![DOI](https://zenodo.org/badge/211153972.svg)](https://zenodo.org/badge/latestdoi/211153972)
+
 This is a browser based AHP javascript library, for general AHP usage.
 
 ## Files
