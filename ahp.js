@@ -342,6 +342,9 @@ class Prioritizer {
       }
   }
 
+  hasAlt(alt) {
+    return indexOf(alt) >= 0
+  }
   /**
    * Returns a list of 2 items.  The first item is the index of the best
    * alternative (if there is a tie, it returns the first index that was
@@ -499,6 +502,21 @@ class AHPTreeNode extends Prioritizer {
       this.childPrioritizer.set(child1, child2, value)
   }
 
+  pairwiseAlts(alt1Index, alt2Index, value) {
+    if (this.altPrioritizer == null) {
+      this.altPrioritizer = new Pairwise(this.nalts())
+    }
+    this.altPrioritizer.set(alt1Index, alt2Index, value)
+  }
+
+  pairwiseAltsName(wrtNodeName, alt1Name, alt2Name, value) {
+    let alt1Index = this.indexOf(alt1Name)
+    let alt2Index = this.indexOf(alt2Name)
+    let top = this.topParentNode()
+    let wrtNode = this.getChildWithNameNormalized(wrtNodeName)
+    wrtNode.pairwiseAlts(alt1Index, alt2Index, value)
+  }
+
   pairwiseName(rowName, colName, value) {
     let top = this.topParentNode()
     let rowNode = this.getChildWithNameNormalized(rowName)
@@ -651,6 +669,9 @@ class AHPTreeNode extends Prioritizer {
   synthesize() {
       if (this.children.length == 0) {
           //No children, simply return altScores upwards
+          if (this.altPrioritizer != null) {
+            this.direct_data = this.altPrioritizer.priority()
+          }
           return this.direct_data
       }
       //Alright, let's synthesize, first I need to zero out the scores
@@ -1155,15 +1176,18 @@ class AHPTreeNode extends Prioritizer {
         }
       }
       let nAlts = alts.length
-      let rval = new AHPTreeNode(null, nAlts, "Our model", "Indescribable", null)
-      rval.alts = alts
+      let rval = new AHPTreeNode(null, 0, "Our model", "Indescribable", null)
       //Now create the structure
       function addAllUnder(nodeName, currentNode) {
         let me=currentNode.addChildName(nodeName, "", "")
         let kids = nameAndKids[nodeName]
         if (kids != null) {
           for (let kid of kids) {
-            addAllUnder(kid, me)
+            if (alts.indexOf(kid) >= 0) {
+              //The kid is actually an alternative, don't add
+            } else {
+              addAllUnder(kid, me)
+            }
           }
         }
       }
@@ -1172,6 +1196,9 @@ class AHPTreeNode extends Prioritizer {
           //Have a top-level
           addAllUnder(node, rval)
         }
+      }
+      for (let alt of alts) {
+        rval.addAlt(alt)
       }
       //Structure is complete, now I need to fill in the values
       for (let column=0; column < headers.length; column++) {
@@ -1182,7 +1209,13 @@ class AHPTreeNode extends Prioritizer {
           let colNode = match[2]
           let vote = matrix[row][column]
           let numericVote = betterScaleToNumeric(vote, rowNode, colNode, betterVal, muchBetterVal)
-          rval.pairwiseName(rowNode, colNode, numericVote)
+          if (rval.getChildIndexWithNameNormalized(rowNode)) {
+            //We are pairwise comparing alternatives, hopefully
+            let wrtNode = match[3]
+            rval.pairwiseAltsName(wrtNode, rowNode, colNode, numericVote)
+          } else {
+            rval.pairwiseName(rowNode, colNode, numericVote)
+          }
         } else if ((match=header.match(/^(.+)\s+wrt\s+(.+)$/))  && (match.length > 2)) {
           let alt = match[1]
           let node = match[2]
